@@ -1,3 +1,4 @@
+import Router from "next/router";
 import { useState, useEffect } from "react";
 import { UserCircleIcon } from "@heroicons/react/solid";
 import Keyboard from "../components/keyboard";
@@ -9,7 +10,6 @@ import toast from "react-hot-toast";
 import getKeyboardsContract from "../utils/getKeyboardsContract";
 import { ethers } from "ethers";
 import { useMetaMaskAccount } from "../components/meta-mask-account-provider";
-import Create from "./create";
 
 export default function Home() {
   const { ethereum, connectedAccount, connectAccount } = useMetaMaskAccount();
@@ -87,7 +87,9 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-y-8">
-      {/* <Create /> */}
+      <PrimaryButton type="button" onClick={() => Router.push("/create")}>
+        Create Keyboard
+      </PrimaryButton>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-2">
         {keyboards.map(([kind, isPBT, filter, owner], i) => (
