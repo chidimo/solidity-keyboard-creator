@@ -10,12 +10,14 @@ async function main() {
   console.log("Contract deployed to:", keyboardsContract.address);
 
   const keyboardTxn1 = await keyboardsContract.create(0, true, "sepia");
-  await keyboardTxn1.wait();
+  keyboardTxn1Receipt = await keyboardTxn1.wait();
+  console.log("Created keyboard event", keyboardTxn1Receipt.events);
 
   const keyboardTxn2 = await keyboardsContract
     .connect(somebodyElse)
     .create(1, false, "grayscale");
-  await keyboardTxn2.wait();
+  keyboardTxn2Receipt = await keyboardTxn2.wait();
+  console.log("Created another keyboard event", keyboardTxn2Receipt.events);
 
   const balanceBefore = await hre.ethers.provider.getBalance(
     somebodyElse.address
@@ -28,7 +30,8 @@ async function main() {
   const tipTxn = await keyboardsContract.tip(1, {
     value: hre.ethers.utils.parseEther("1000"),
   });
-  await tipTxn.wait();
+  tipTxnReceipt = await tipTxn.wait();
+  console.log("Tipped event", tipTxnReceipt.events);
 
   const balanceAfter = await hre.ethers.provider.getBalance(
     somebodyElse.address
