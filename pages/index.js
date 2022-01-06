@@ -87,8 +87,11 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-y-8">
+      <p className="">
+        Connected to account <span className="font-bold text-blue-500">{connectedAccount}</span>
+      </p>
       <PrimaryButton type="button" onClick={() => Router.push("/create")}>
-        Create Keyboard
+        Create New Keyboard
       </PrimaryButton>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-2">
