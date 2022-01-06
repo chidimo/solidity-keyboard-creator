@@ -9,14 +9,12 @@ async function main() {
 
   console.log("Contract deployed to:", keyboardsContract.address);
 
-  const keyboardTxn1 = await keyboardsContract.create(
-    "A really greate keyboard"
-  );
+  const keyboardTxn1 = await keyboardsContract.create(0, true, "sepia");
   await keyboardTxn1.wait();
 
   const keyboardTxn2 = await keyboardsContract
     .connect(somebodyElse)
-    .create("An even better keyboard");
+    .create(1, false, "grayscale");
   await keyboardTxn2.wait();
 
   keyboards = await keyboardsContract.getKeyboards();

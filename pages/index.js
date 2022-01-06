@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import Router from "next/router";
+import Keyboard from "../components/keyboard";
 import PrimaryButton from "../components/primary-button";
 import abi from "../utils/Keyboards.json";
 import { ethers } from "ethers";
@@ -7,9 +9,15 @@ export default function Home() {
   const [ethereum, setEthereum] = useState(undefined);
   const [connectedAccount, setConnectedAccount] = useState(undefined);
   const [keyboards, setKeyboards] = useState([]);
-  const [newKeyboard, setNewKeyboard] = useState("");
 
-  const contractAddress = "0x9F7D6ADDA4C07e049C31B990b9110571F344d46c";
+  const [keyboardKind, setKeyboardKind] = useState(0);
+  const [isPBT, setIsPBT] = useState(false);
+  const [filter, setFilter] = useState("");
+
+  const [mining, setMining] = useState(false);
+  const [keyboardsLoading, setKeyboardsLoading] = useState(false);
+
+  const contractAddress = "0x1ed71E8663a6c284354f50F453b4Bbc83B3bcB2C";
   const contractABI = abi.abi;
 
   const handleAccounts = (accounts) => {
@@ -46,19 +54,26 @@ export default function Home() {
 
   const getKeyboards = async () => {
     if (ethereum && connectedAccount) {
-      const provider = new ethers.providers.Web3Provider(ethereum);
-      const signer = provider.getSigner();
-      const keyboardsContract = new ethers.Contract(
-        contractAddress,
-        contractABI,
-        signer
-      );
+      setKeyboardsLoading(true);
+      try {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        const keyboardsContract = new ethers.Contract(
+          contractAddress,
+          contractABI,
+          signer
+        );
 
-      const keyboards = await keyboardsContract.getKeyboards();
-      console.log("Retrieved keyboards...", keyboards);
-      setKeyboards(keyboards);
+        const keyboards = await keyboardsContract.getKeyboards();
+        console.log("Retrieved keyboards...", keyboards);
+
+        setKeyboards(keyboards);
+      } finally {
+        setKeyboardsLoading(false);
+      }
     }
   };
+
   useEffect(() => getKeyboards(), [connectedAccount]);
 
   const submitCreate = async (e) => {
@@ -69,21 +84,30 @@ export default function Home() {
       return;
     }
 
-    const provider = new ethers.providers.Web3Provider(ethereum);
-    const signer = provider.getSigner();
-    const keyboardsContract = new ethers.Contract(
-      contractAddress,
-      contractABI,
-      signer
-    );
+    setMining(true);
+    try {
+      const provider = new ethers.providers.Web3Provider(ethereum);
+      const signer = provider.getSigner();
+      const keyboardsContract = new ethers.Contract(
+        contractAddress,
+        contractABI,
+        signer
+      );
 
-    const createTxn = await keyboardsContract.create(newKeyboard);
-    console.log("Create transaction started...", createTxn.hash);
+      const createTxn = await keyboardsContract.create(
+        keyboardKind,
+        isPBT,
+        filter
+      );
+      console.log("Create transaction started...", createTxn.hash);
 
-    await createTxn.wait();
-    console.log("Created keyboard!", createTxn.hash);
+      await createTxn.wait();
+      console.log("Created keyboard!", createTxn.hash);
 
-    await getKeyboards();
+      Router.push("/");
+    } finally {
+      setMining(false);
+    }
   };
 
   if (!ethereum) {
@@ -98,34 +122,103 @@ export default function Home() {
     );
   }
 
+  if (keyboardsLoading) {
+    return (
+      <div className="flex flex-col gap-4">
+        <PrimaryButton type="link" href="/create">
+          Create a Keyboard!
+        </PrimaryButton>
+        <p>Loading Keyboards...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-y-8">
-      <form className="flex flex-col gap-y-2">
+      <form className="mt-8 flex flex-col gap-y-6">
         <div>
           <label
-            htmlFor="keyboard-description"
+            htmlFor="keyboard-type"
             className="block text-sm font-medium text-gray-700"
           >
-            Keyboard Description
+            Keyboard Type
           </label>
+          <select
+            id="keyboard-type"
+            name="keyboard-type"
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+            value={keyboardKind}
+            onChange={(e) => {
+              setKeyboardKind(e.target.value);
+            }}
+          >
+            <option value="0">60%</option>
+            <option value="1">75%</option>
+            <option value="2">80%</option>
+            <option value="3">ISO-105</option>
+          </select>
         </div>
-        <input
-          name="keyboard-type"
-          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-          value={newKeyboard}
-          onChange={(e) => {
-            setNewKeyboard(e.target.value);
-          }}
-        />
-        <PrimaryButton type="submit" onClick={submitCreate}>
-          Create Keyboard!
+
+        <div>
+          <label
+            htmlFor="keycap-type"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Keycap Type
+          </label>
+          <select
+            id="keycap-type"
+            name="keycap-type"
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+            value={isPBT ? "pbt" : "abs"}
+            onChange={(e) => {
+              setIsPBT(e.target.value === "pbt");
+            }}
+          >
+            <option value="abs">ABS</option>
+            <option value="pbt">PBT</option>
+          </select>
+        </div>
+
+        <div>
+          <label
+            htmlFor="filter"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Filter
+          </label>
+          <select
+            id="filter"
+            name="filter"
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+            onChange={(e) => {
+              setFilter(e.target.value);
+            }}
+            value={filter}
+          >
+            <option value="">None</option>
+            <option value="sepia">Sepia</option>
+            <option value="grayscale">Grayscale</option>
+            <option value="invert">Invert</option>
+            <option value="hue-rotate-90">Hue Rotate (90°)</option>
+            <option value="hue-rotate-180">Hue Rotate (180°)</option>
+          </select>
+        </div>
+
+        <PrimaryButton type="submit" disabled={mining} onClick={submitCreate}>
+          {mining ? "Creating..." : "Create Keyboard"}
         </PrimaryButton>
       </form>
 
+      <div>
+        <h2 className="block text-lg font-medium text-gray-700">Preview</h2>
+        <Keyboard kind={keyboardKind} isPBT={isPBT} filter={filter} />
+      </div>
+
       {
         <div>
-          {keyboards.map((keyboard, i) => (
-            <p key={i}>{keyboard}</p>
+          {keyboards.map(([kind, isPBT, filter], i) => (
+            <Keyboard key={i} kind={kind} isPBT={isPBT} filter={filter} />
           ))}
         </div>
       }
